@@ -94,6 +94,7 @@ class GameScene extends Phaser.Scene {
     };
 
     cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys;
+    wasdKeys: any;
 
     preload() {
         this.load.image('player', new URL('./public/assets/soldier1_gun.png', import.meta.url).toString());
@@ -104,6 +105,7 @@ class GameScene extends Phaser.Scene {
         this.add.tileSprite(400, 300, 800, 600, 'floor');
 
         this.cursorKeys = this.input.keyboard.createCursorKeys();
+        this.wasdKeys = this.input.keyboard.addKeys('W,A,S,D');
 
         const callbacks = Callbacks.get(room);
 
@@ -147,10 +149,10 @@ class GameScene extends Phaser.Scene {
     update(time: number, delta: number): void {
         if (!room) { return; }
 
-        this.inputPayload.left = this.cursorKeys.left.isDown;
-        this.inputPayload.right = this.cursorKeys.right.isDown;
-        this.inputPayload.up = this.cursorKeys.up.isDown;
-        this.inputPayload.down = this.cursorKeys.down.isDown;
+        this.inputPayload.left = this.cursorKeys.left.isDown || this.wasdKeys.A.isDown;
+        this.inputPayload.right = this.cursorKeys.right.isDown || this.wasdKeys.D.isDown;
+        this.inputPayload.up = this.cursorKeys.up.isDown || this.wasdKeys.W.isDown;
+        this.inputPayload.down = this.cursorKeys.down.isDown || this.wasdKeys.S.isDown;
 
         const myEntity = this.playerEntities[room.sessionId];
         let rotation = 0;
@@ -172,7 +174,7 @@ const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
-    backgroundColor: '#b6d53c',
+    backgroundColor: '#3c9ad5',
     parent: 'phaser-example',
     physics: { default: "arcade" },
     pixelArt: true,
