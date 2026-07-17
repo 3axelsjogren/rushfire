@@ -58,15 +58,18 @@ class LobbyScene extends Phaser.Scene {
             room.send("startGame");
         });
 
-        const callbacks = Callbacks.get(room);
-
         const updateCount = () => {
-            playerCountText.setText(`Spelare anslutna: ${room.state.players.size}`);
+            const count = room.state?.players?.size ?? 0;
+            playerCountText.setText(`Spelare anslutna: ${count}`);
         };
 
-        callbacks.onAdd("players", updateCount);
-        callbacks.onRemove("players", updateCount);
+        room.onStateChange(() => {
+            updateCount();
+        });
+
         updateCount();
+
+        const callbacks = Callbacks.get(room);
 
         callbacks.listen("phase", (currentPhase) => {
             if (currentPhase === "playing") {
@@ -93,16 +96,19 @@ class GameScene extends Phaser.Scene {
     cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys;
 
     preload() {
-        this.load.image('ship_0001', 'https://cdn.jsdelivr.net/gh/colyseus/tutorial-phaser@master/client/dist/assets/ship_0001.png');
+        this.load.image('player', new URL('./public/assets/soldier1_gun.png', import.meta.url).toString());
+        this.load.image('floor', new URL('./public/assets/tile_17.png', import.meta.url).toString());
     }
 
     create() {
+        this.add.tileSprite(400, 300, 800, 600, 'floor');
+
         this.cursorKeys = this.input.keyboard.createCursorKeys();
 
         const callbacks = Callbacks.get(room);
 
         room.state.players.forEach((player: any, sessionId: string) => {
-            const entity: any = this.physics.add.image(player.x, player.y, 'ship_0001');
+            const entity: any = this.physics.add.image(player.x, player.y, 'player');
             entity.targetX = player.x;
             entity.targetY = player.y;
             this.playerEntities[sessionId] = entity;
@@ -110,13 +116,14 @@ class GameScene extends Phaser.Scene {
             callbacks.onChange(player, () => {
                 entity.targetX = player.x;
                 entity.targetY = player.y;
+                entity.rotation = player.rotation;
             });
         });
 
         callbacks.onAdd("players", (player: any, sessionId: string) => {
             if (this.playerEntities[sessionId]) return;
 
-            const entity: any = this.physics.add.image(player.x, player.y, 'ship_0001');
+            const entity: any = this.physics.add.image(player.x, player.y, 'player');
             entity.targetX = player.x;
             entity.targetY = player.y;
             this.playerEntities[sessionId] = entity;
@@ -124,6 +131,7 @@ class GameScene extends Phaser.Scene {
             callbacks.onChange(player, () => {
                 entity.targetX = player.x;
                 entity.targetY = player.y;
+                entity.rotation = player.rotation;
             });
         });
 
@@ -143,7 +151,14 @@ class GameScene extends Phaser.Scene {
         this.inputPayload.right = this.cursorKeys.right.isDown;
         this.inputPayload.up = this.cursorKeys.up.isDown;
         this.inputPayload.down = this.cursorKeys.down.isDown;
-        room.send(0, this.inputPayload);
+
+        const myEntity = this.playerEntities[room.sessionId];
+        let rotation = 0;
+        if (myEntity) {
+            rotation = Phaser.Math.Angle.Between(myEntity.x, myEntity.y, this.input.activePointer.worldX, this.input.activePointer.worldY);
+        }
+
+        room.send(0, {...this.inputPayload, rotation });
 
         for (const sessionId in this.playerEntities) {
             const entity: any = this.playerEntities[sessionId];

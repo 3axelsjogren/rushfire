@@ -23,6 +23,8 @@ export class MyRoom extends Room {
       } else if (payload.down) {
         player.y += velocity;
       }
+
+      player.rotation = payload.rotation;
     },
     startGame: (client: Client) => {
       // Bara den som skapade rummet (första spelaren) får starta
