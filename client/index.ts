@@ -1,7 +1,12 @@
 import Phaser from "phaser";
 import { Client, Room, Callbacks } from "@colyseus/sdk";
 
-const client = new Client("http://localhost:2567");
+const serverUrl = window.location.hostname === "localhost"
+    ? "http://localhost:2567"
+    : window.location.origin;
+
+const client = new Client(serverUrl);
+
 let room: Room;
 
 class MenuScene extends Phaser.Scene {
@@ -85,6 +90,7 @@ class GameScene extends Phaser.Scene {
     }
 
     playerEntities: {[sessionId: string]: any} = {};
+    bulletEntities: {[bulletId: string]: any} = {};
 
     inputPayload = {
         left: false,
@@ -99,6 +105,7 @@ class GameScene extends Phaser.Scene {
     preload() {
         this.load.image('player', new URL('./public/assets/soldier1_gun.png', import.meta.url).toString());
         this.load.image('floor', new URL('./public/assets/tile_17.png', import.meta.url).toString());
+        this.load.image('bullet', new URL('./public/assets/bullet.png', import.meta.url).toString());
     }
 
     create() {
@@ -106,6 +113,9 @@ class GameScene extends Phaser.Scene {
 
         this.cursorKeys = this.input.keyboard.createCursorKeys();
         this.wasdKeys = this.input.keyboard.addKeys('W,A,S,D');
+        this.input.on("pointerdown", () => {
+            room.send("shoot");
+        });
 
         const callbacks = Callbacks.get(room);
 
@@ -142,6 +152,26 @@ class GameScene extends Phaser.Scene {
             if (entity) {
                 entity.destroy();
                 delete this.playerEntities[sessionId];
+            }
+        });
+
+        callbacks.onAdd("bullets", (bullet: any, bulletId: string) => {
+            const entity = this.physics.add.image(bullet.x, bullet.y, 'bullet');
+            entity.setScale(1.0);
+            entity.setTint(0xffff00);
+            this.bulletEntities[bulletId] = entity;
+
+            callbacks.onChange(bullet, () => {
+                entity.x = bullet.x;
+                entity.y = bullet.y;
+            });
+        });
+
+        callbacks.onRemove("bullets", (bullet: any, bulletId: string) => {
+            const entity = this.bulletEntities[bulletId];
+            if (entity) {
+                entity.destroy();
+                delete this.bulletEntities[bulletId];
             }
         });
     }
