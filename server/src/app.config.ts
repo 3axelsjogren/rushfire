@@ -1,3 +1,6 @@
+import path from "path";
+import express from "express";
+
 import {
     defineServer,
     defineRoom,
@@ -54,8 +57,10 @@ const server = defineServer({
          * (It is not recommended to expose this route in a production environment)
          */
         if (process.env.NODE_ENV !== "production") {
-            app.use("/", playground());
+            app.use("/playground", playground());
         }
+
+        app.use(express.static(path.join(process.cwd(), "public")));
     }
 
 });
