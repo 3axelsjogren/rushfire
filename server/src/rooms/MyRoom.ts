@@ -11,8 +11,9 @@ export class MyRoom extends Room {
       if (this.state.phase !== "playing") return;
 
       const player = this.state.players.get(client.sessionId);
-      const velocity = 2;
+      if (player.hp <= 0) return;
 
+      const velocity = 2;
       if (payload.left) {
         player.x -= velocity;
       } else if (payload.right) {
@@ -32,6 +33,7 @@ export class MyRoom extends Room {
 
       const player = this.state.players.get(client.sessionId);
       if (!player) return;
+      if (player.hp <= 0) return;
 
       const muzzleOffset = 20;
       const sideOffset = 8;
@@ -65,10 +67,31 @@ export class MyRoom extends Room {
     const bulletSpeed = 8;
     const mapWidth = 800;
     const mapHeight = 600;
+    const hitRadius = 20;
 
     this.state.bullets.forEach((bullet, bulletId) => {
         bullet.x += Math.cos(bullet.rotation) * bulletSpeed;
         bullet.y += Math.sin(bullet.rotation) * bulletSpeed;
+
+        let hitSomeone = false;
+        this.state.players.forEach((player, sessionId) =>{
+          if (sessionId == bullet.ownerId) return;
+          if (player.hp <= 0) return;
+
+          const dx = player.x - bullet.x;
+          const dy = player.y - bullet.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < hitRadius){
+            player.hp -= 25;
+            hitSomeone = true;
+          }
+        });
+
+        if(hitSomeone){
+          this.state.bullets.delete(bulletId);
+          return;
+        }
 
         if (bullet.x < 0 || bullet.x > mapWidth || bullet.y < 0 || bullet.y > mapHeight) {
           this.state.bullets.delete(bulletId);

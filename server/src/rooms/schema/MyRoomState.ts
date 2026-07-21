@@ -4,6 +4,7 @@ export class Player extends Schema {
     @type("number") x: number;
     @type("number") y: number;
     @type("number") rotation: number = 0;
+    @type("number") hp: number = 100;
 }
 
 export class Bullet extends Schema {

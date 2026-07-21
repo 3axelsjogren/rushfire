@@ -91,6 +91,7 @@ class GameScene extends Phaser.Scene {
 
     playerEntities: {[sessionId: string]: any} = {};
     bulletEntities: {[bulletId: string]: any} = {};
+    healthTexts: {[sessionId: string]: any} = {};
 
     inputPayload = {
         left: false,
@@ -113,38 +114,41 @@ class GameScene extends Phaser.Scene {
 
         this.cursorKeys = this.input.keyboard.createCursorKeys();
         this.wasdKeys = this.input.keyboard.addKeys('W,A,S,D');
+
         this.input.on("pointerdown", () => {
             room.send("shoot");
         });
 
         const callbacks = Callbacks.get(room);
 
-        room.state.players.forEach((player: any, sessionId: string) => {
+        const createPlayerEntity = (player: any, sessionId: string) => {
             const entity: any = this.physics.add.image(player.x, player.y, 'player');
             entity.targetX = player.x;
             entity.targetY = player.y;
             this.playerEntities[sessionId] = entity;
 
+            const healthText = this.add.text(player.x, player.y - 30, `${player.hp} hp`, { fontSize: "14px", color: "#ffffff" }).setOrigin(0.5);
+            this.healthTexts[sessionId] = healthText;
+
             callbacks.onChange(player, () => {
                 entity.targetX = player.x;
                 entity.targetY = player.y;
                 entity.rotation = player.rotation;
+                healthText.setText(`${player.hp} hp`);
+
+                if (player.hp <= 0) {
+                    entity.setAlpha(0.3);
+                }
             });
+        };
+
+        room.state.players.forEach((player: any, sessionId: string) => {
+            createPlayerEntity(player, sessionId);
         });
 
         callbacks.onAdd("players", (player: any, sessionId: string) => {
             if (this.playerEntities[sessionId]) return;
-
-            const entity: any = this.physics.add.image(player.x, player.y, 'player');
-            entity.targetX = player.x;
-            entity.targetY = player.y;
-            this.playerEntities[sessionId] = entity;
-
-            callbacks.onChange(player, () => {
-                entity.targetX = player.x;
-                entity.targetY = player.y;
-                entity.rotation = player.rotation;
-            });
+            createPlayerEntity(player, sessionId);
         });
 
         callbacks.onRemove("players", (player: any, sessionId: string) => {
@@ -153,12 +157,16 @@ class GameScene extends Phaser.Scene {
                 entity.destroy();
                 delete this.playerEntities[sessionId];
             }
+            const healthText = this.healthTexts[sessionId];
+            if (healthText) {
+                healthText.destroy();
+                delete this.healthTexts[sessionId];
+            }
         });
 
         callbacks.onAdd("bullets", (bullet: any, bulletId: string) => {
             const entity = this.physics.add.image(bullet.x, bullet.y, 'bullet');
             entity.setScale(1.0);
-            entity.setTint(0xffff00);
             this.bulletEntities[bulletId] = entity;
 
             callbacks.onChange(bullet, () => {
@@ -196,6 +204,11 @@ class GameScene extends Phaser.Scene {
             const entity: any = this.playerEntities[sessionId];
             entity.x = Phaser.Math.Linear(entity.x, entity.targetX, 0.2);
             entity.y = Phaser.Math.Linear(entity.y, entity.targetY, 0.2);
+
+            const healthText = this.healthTexts[sessionId];
+            if (healthText) {
+                healthText.setPosition(entity.x, entity.y - 30);
+            }
         }
     }
 }
