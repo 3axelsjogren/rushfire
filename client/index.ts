@@ -202,8 +202,8 @@ class GameScene extends Phaser.Scene {
 
         for (const sessionId in this.playerEntities) {
             const entity: any = this.playerEntities[sessionId];
-            entity.x = Phaser.Math.Linear(entity.x, entity.targetX, 0.2);
-            entity.y = Phaser.Math.Linear(entity.y, entity.targetY, 0.2);
+            entity.x = Phaser.Math.Linear(entity.x, entity.targetX, 0.1);
+            entity.y = Phaser.Math.Linear(entity.y, entity.targetY, 0.1);
 
             const healthText = this.healthTexts[sessionId];
             if (healthText) {
