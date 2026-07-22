@@ -821,6 +821,7 @@ class GameScene extends (0, _phaserDefault.default).Scene {
     }
     playerEntities = {};
     bulletEntities = {};
+    healthTexts = {};
     inputPayload = {
         left: false,
         right: false,
@@ -842,28 +843,30 @@ class GameScene extends (0, _phaserDefault.default).Scene {
             room.send("shoot");
         });
         const callbacks = (0, _sdk.Callbacks).get(room);
-        room.state.players.forEach((player, sessionId)=>{
+        const createPlayerEntity = (player, sessionId)=>{
             const entity = this.physics.add.image(player.x, player.y, 'player');
             entity.targetX = player.x;
             entity.targetY = player.y;
             this.playerEntities[sessionId] = entity;
+            const healthText = this.add.text(player.x, player.y - 30, `${player.hp} hp`, {
+                fontSize: "14px",
+                color: "#ffffff"
+            }).setOrigin(0.5);
+            this.healthTexts[sessionId] = healthText;
             callbacks.onChange(player, ()=>{
                 entity.targetX = player.x;
                 entity.targetY = player.y;
                 entity.rotation = player.rotation;
+                healthText.setText(`${player.hp} hp`);
+                if (player.hp <= 0) entity.setAlpha(0.3);
             });
+        };
+        room.state.players.forEach((player, sessionId)=>{
+            createPlayerEntity(player, sessionId);
         });
         callbacks.onAdd("players", (player, sessionId)=>{
             if (this.playerEntities[sessionId]) return;
-            const entity = this.physics.add.image(player.x, player.y, 'player');
-            entity.targetX = player.x;
-            entity.targetY = player.y;
-            this.playerEntities[sessionId] = entity;
-            callbacks.onChange(player, ()=>{
-                entity.targetX = player.x;
-                entity.targetY = player.y;
-                entity.rotation = player.rotation;
-            });
+            createPlayerEntity(player, sessionId);
         });
         callbacks.onRemove("players", (player, sessionId)=>{
             const entity = this.playerEntities[sessionId];
@@ -871,11 +874,15 @@ class GameScene extends (0, _phaserDefault.default).Scene {
                 entity.destroy();
                 delete this.playerEntities[sessionId];
             }
+            const healthText = this.healthTexts[sessionId];
+            if (healthText) {
+                healthText.destroy();
+                delete this.healthTexts[sessionId];
+            }
         });
         callbacks.onAdd("bullets", (bullet, bulletId)=>{
             const entity = this.physics.add.image(bullet.x, bullet.y, 'bullet');
             entity.setScale(1.0);
-            entity.setTint(0xffff00);
             this.bulletEntities[bulletId] = entity;
             callbacks.onChange(bullet, ()=>{
                 entity.x = bullet.x;
@@ -905,8 +912,10 @@ class GameScene extends (0, _phaserDefault.default).Scene {
         });
         for(const sessionId in this.playerEntities){
             const entity = this.playerEntities[sessionId];
-            entity.x = (0, _phaserDefault.default).Math.Linear(entity.x, entity.targetX, 0.2);
-            entity.y = (0, _phaserDefault.default).Math.Linear(entity.y, entity.targetY, 0.2);
+            entity.x = (0, _phaserDefault.default).Math.Linear(entity.x, entity.targetX, 0.1);
+            entity.y = (0, _phaserDefault.default).Math.Linear(entity.y, entity.targetY, 0.1);
+            const healthText = this.healthTexts[sessionId];
+            if (healthText) healthText.setPosition(entity.x, entity.y - 30);
         }
     }
 }
@@ -928,7 +937,7 @@ const config = {
 };
 const game = new (0, _phaserDefault.default).Game(config);
 
-},{"phaser":"9nmdg","@colyseus/sdk":"6UauA","a8c4d6a382e4f2d8":"5omRH","2bcf0c88d8d930b5":"gqxkF","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","a7274a90b7556db3":"KIeBo"}],"9nmdg":[function(require,module,exports,__globalThis) {
+},{"phaser":"9nmdg","@colyseus/sdk":"6UauA","a8c4d6a382e4f2d8":"5omRH","2bcf0c88d8d930b5":"gqxkF","a7274a90b7556db3":"KIeBo","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"9nmdg":[function(require,module,exports,__globalThis) {
 var process = require("57a99fe9b8471a10");
 (function webpackUniversalModuleDefinition(root, factory) {
     module.exports = factory();
@@ -204774,6 +204783,9 @@ module.exports = module.bundle.resolve("soldier1_gun.6a630f87.png") + "?" + Date
 },{}],"gqxkF":[function(require,module,exports,__globalThis) {
 module.exports = module.bundle.resolve("tile_17.e826842f.png") + "?" + Date.now();
 
+},{}],"KIeBo":[function(require,module,exports,__globalThis) {
+module.exports = module.bundle.resolve("bullet.120bd052.png") + "?" + Date.now();
+
 },{}],"jnFvT":[function(require,module,exports,__globalThis) {
 exports.interopDefault = function(a) {
     return a && a.__esModule ? a : {
@@ -204803,9 +204815,6 @@ exports.export = function(dest, destName, get) {
         get: get
     });
 };
-
-},{}],"KIeBo":[function(require,module,exports,__globalThis) {
-module.exports = module.bundle.resolve("bullet.120bd052.png") + "?" + Date.now();
 
 },{}]},["56lpG","ly4KV"], "ly4KV", "parcelRequiree8ef", {}, "./", "/")
 
